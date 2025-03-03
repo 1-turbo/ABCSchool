@@ -1,14 +1,16 @@
 ﻿using Finbuckle.MultiTenant;
 using Infrastructure.Tenancy;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Client;
 
 namespace Infrastructure
 {
     public static class Startup
     {
-        public static IServiceCollection AddMultiTenancyServices(this IServiceCollection services, IConfiguration config)
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
         {
             return services
                 .AddDbContext<TenantDbContext>(options => options
@@ -18,6 +20,12 @@ namespace Infrastructure
                 .WithClaimStrategy(TenancyConstants.TenantIdName)
                 .WithEFCoreStore<TenantDbContext, ABCSchoolTenantInfo>()
                 .Services;
+        }
+
+        public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
+        {
+            return app
+                .UseMultiTenant();
         }
     }
 }
