@@ -38,5 +38,12 @@ namespace Infrastructure.Contexts
                 }); 
             }
         }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.ApplyConfigurationsFromAssembly(GetType().Assembly);
+        }
     }
 }
