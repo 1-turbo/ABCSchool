@@ -1,9 +1,10 @@
 ﻿using Finbuckle.MultiTenant;
+using Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Infrastructure.Tenancy
+namespace Infrastructure
 {
     public static class Startup
     {
@@ -13,8 +14,8 @@ namespace Infrastructure.Tenancy
                 .AddDbContext<TenantDbContext>(options => options
                 .UseSqlServer(config.GetConnectionString("DefaultConnection")))
                 .AddMultiTenant<ABCSchoolTenantInfo>()
-                .WithHeaderStrategy("tenant")
-                .WithClaimStrategy("tenant")
+                .WithHeaderStrategy(TenancyConstants.TenantIdName)
+                .WithClaimStrategy(TenancyConstants.TenantIdName)
                 .WithEFCoreStore<TenantDbContext, ABCSchoolTenantInfo>()
                 .Services;
         }
