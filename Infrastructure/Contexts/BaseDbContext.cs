@@ -23,6 +23,7 @@ namespace Infrastructure.Contexts
         protected BaseDbContext(IMultiTenantContextAccessor<ABCSchoolTenantInfo> tenantInfoContextAccessor, DbContextOptions options) 
             : base(tenantInfoContextAccessor, options)
         {
+            TenantInfo = tenantInfoContextAccessor.MultiTenantContext.TenantInfo;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
