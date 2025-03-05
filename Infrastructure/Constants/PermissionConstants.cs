@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 
-namespace Infrastructure.Constatnts
+namespace Infrastructure.Constants
 {
     public static class SchoolAction
     {
