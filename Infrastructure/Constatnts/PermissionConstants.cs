@@ -1,4 +1,6 @@
-﻿namespace Infrastructure.Constatnts
+﻿using System.Collections.ObjectModel;
+
+namespace Infrastructure.Constatnts
 {
     public static class SchoolAction
     {
@@ -51,10 +53,22 @@
             new SchoolPermission(SchoolAction.Read, SchoolFeature.RoleClaims, "Read Role Claims/Permissions"),
             new SchoolPermission(SchoolAction.Update, SchoolFeature.RoleClaims, "Update Role Claims/Permissions"),
 
-            new SchoolPermission(SchoolAction.Read, SchoolFeature.Schools, "Read Schools"),
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.Schools, "Read Schools", IsBasic: true),
             new SchoolPermission(SchoolAction.Create, SchoolFeature.Schools, "Create Schools"),
             new SchoolPermission(SchoolAction.Update, SchoolFeature.Schools, "Update Schools"),
             new SchoolPermission(SchoolAction.Delete, SchoolFeature.Schools, "Delete Schools"),
         ];
-    }
+
+            public static IReadOnlyList<SchoolPermission> All { get; } 
+                = new ReadOnlyCollection<SchoolPermission>(_allPermissions);
+
+            public static IReadOnlyList<SchoolPermission> Root { get; }
+                = new ReadOnlyCollection<SchoolPermission>(_allPermissions.Where(p => p.IsRoot).ToArray());
+
+            public static IReadOnlyList<SchoolPermission> Admin { get; }
+                = new ReadOnlyCollection<SchoolPermission>(_allPermissions.Where(p => !p.IsRoot).ToArray());
+            
+            public static IReadOnlyList<SchoolPermission> Basic { get; }
+                = new ReadOnlyCollection<SchoolPermission>(_allPermissions.Where(p => p.IsBasic).ToArray());
+        }
 }
