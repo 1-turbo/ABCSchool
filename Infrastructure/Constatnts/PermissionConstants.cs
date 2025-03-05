@@ -25,4 +25,36 @@
         public static string NameFor(string action, string feature) => $"Permission.{feature}.{action}";
 
     }
+
+    public static class SchoolPermissions
+    {
+        private static readonly SchoolPermission[] _allPermissions =
+        [
+            new SchoolPermission(SchoolAction.Create, SchoolFeature.Tenants, "Create Tenants", IsRoot: true),
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.Tenants, "Read Tenants", IsRoot: true),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.Tenants, "Update Tenants", IsRoot: true),
+            new SchoolPermission(SchoolAction.UpgradeSubscription, SchoolFeature.Tenants, "Upgrade Tenant's Subscription", IsRoot: true),
+
+            new SchoolPermission(SchoolAction.Create, SchoolFeature.Users, "Create Users"),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.Users, "Update Users"),
+            new SchoolPermission(SchoolAction.Delete, SchoolFeature.Users, "Delete Users"),
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.Users, "Read Users"),
+
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.UserRoles, "Read User Roles"),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.UserRoles, "Update User Roles"),
+
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.Roles, "Read Roles"),
+            new SchoolPermission(SchoolAction.Create, SchoolFeature.Roles, "Create Roles"),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.Roles, "Update Roles"),
+            new SchoolPermission(SchoolAction.Delete, SchoolFeature.Roles, "Delete Roles"),
+
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.RoleClaims, "Read Role Claims/Permissions"),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.RoleClaims, "Update Role Claims/Permissions"),
+
+            new SchoolPermission(SchoolAction.Read, SchoolFeature.Schools, "Read Schools"),
+            new SchoolPermission(SchoolAction.Create, SchoolFeature.Schools, "Create Schools"),
+            new SchoolPermission(SchoolAction.Update, SchoolFeature.Schools, "Update Schools"),
+            new SchoolPermission(SchoolAction.Delete, SchoolFeature.Schools, "Delete Schools"),
+        ];
+    }
 }
