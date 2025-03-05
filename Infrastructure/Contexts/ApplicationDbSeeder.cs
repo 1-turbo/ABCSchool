@@ -1,8 +1,10 @@
 ﻿using Finbuckle.MultiTenant.Abstractions;
+using Infrastructure.Constants;
 using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace Infrastructure.Contexts
 {
@@ -28,8 +30,67 @@ namespace Infrastructure.Contexts
 
                 if(await _applicationDbContext.Database.CanConnectAsync(cancellationToken))
                 {
-                    //Seeding
+                    // Seeding
+                    // Default Roles > Assign permissions/claims
+                    await InitializeDefaultRolesAsync(cancellationToken);
+                    // Users > Assign Roles 
+                }
+            }
+        }
 
+        private async Task InitializeDefaultRolesAsync(CancellationToken ct)
+        {
+            foreach (var roleName in RoleConstants.DefaultRoles)
+            {
+                if(await _roleManager.Roles.SingleOrDefaultAsync(role => role.Name == roleName, ct) is not ApplicationRole incommingRole)
+                {
+                    incommingRole = new ApplicationRole()
+                    {
+                        Name = roleName,
+                        Description = $"{roleName} Role"
+                    };
+
+                    await _roleManager.CreateAsync(incommingRole);
+                }
+
+                // Assign permissions   
+
+                if(roleName == RoleConstants.Basic)
+                {
+                    await AssignPermissionsToRole(SchoolPermissions.Basic, incommingRole, ct);
+                }
+                else if(roleName == RoleConstants.Admin)
+                {
+                    await AssignPermissionsToRole(SchoolPermissions.Admin, incommingRole, ct);
+
+                    if(_tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Id == TenancyConstants.Root)
+                    {
+                        await AssignPermissionsToRole(SchoolPermissions.Root, incommingRole, ct);
+                    }
+                }
+            }
+        }
+
+        private async Task AssignPermissionsToRole(
+            IReadOnlyList<SchoolPermission> rolePermissions, 
+            ApplicationRole role, CancellationToken ct)
+        {
+            var currentClaims = await _roleManager.GetClaimsAsync(role);
+
+            foreach (var rolePermission in rolePermissions)
+            {
+                if(!currentClaims.Any(c => c.Type == ClaimConstants.Permission && c.Value == rolePermission.Name))
+                {
+                    await _applicationDbContext.RoleClaims.AddAsync(new ApplicationRoleClaim
+                    {
+                        RoleId = role.Id,
+                        ClaimType = ClaimConstants.Permission,
+                        ClaimValue = rolePermission.Name,
+                        Description = rolePermission.Description,
+                        Group = rolePermission.Group
+                    }, ct);
+
+                    await _applicationDbContext.SaveChangesAsync(ct);
                 }
             }
         }
