@@ -3,6 +3,9 @@
     public class TenancyConstants
     {
         public const string TenantIdName = "tenant";
+        public const string DefaultPassword = "Turbo@123";
+        public const string FirstName = "Turbo";
+        public const string LastName = "Ahmed"; 
 
         public static class Root
         {

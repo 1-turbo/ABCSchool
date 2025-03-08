@@ -1,4 +1,5 @@
-﻿using Finbuckle.MultiTenant.Abstractions;
+﻿using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 using Infrastructure.Constants;
 using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
@@ -93,6 +94,30 @@ namespace Infrastructure.Contexts
 
                     await _applicationDbContext.SaveChangesAsync(ct);
                 }
+            }
+        }
+
+        private async Task InitializeAdminUserAsync()
+        {
+            if (string.IsNullOrEmpty(_tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email)) return;
+
+            if (await _userManager.Users
+                .SingleOrDefaultAsync(user => user.Email == _tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email)
+                is not ApplicationUser incomingUser)
+            {
+                incomingUser = new ApplicationUser
+                {
+                    FirstName = TenancyConstants.FirstName,
+                    LastName = TenancyConstants.LastName,
+                    Email = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
+                    UserName = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
+                    EmailConfirmed = true,
+                    PhoneNumberConfirmed = true,
+                    NormalizedEmail = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
+                    NormalizedUserName = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
+                    IsActive = true,
+                };
+
             }
         }
     }
