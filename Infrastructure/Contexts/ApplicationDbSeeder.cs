@@ -53,17 +53,18 @@ namespace Infrastructure.Contexts
                     await _roleManager.CreateAsync(incommingRole);
                 }
 
-                // Assign permissions   
 
-                if(roleName == RoleConstants.Basic)
+                if (roleName == RoleConstants.Basic)
                 {
+                    // Assign Basic permissions   
                     await AssignPermissionsToRole(SchoolPermissions.Basic, incommingRole, ct);
                 }
                 else if(roleName == RoleConstants.Admin)
                 {
+                    // Assign Admin permissions   
                     await AssignPermissionsToRole(SchoolPermissions.Admin, incommingRole, ct);
 
-                    if(_tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Id == TenancyConstants.Root)
+                    if(_tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Id == TenancyConstants.Root.Id)
                     {
                         await AssignPermissionsToRole(SchoolPermissions.Root, incommingRole, ct);
                     }
