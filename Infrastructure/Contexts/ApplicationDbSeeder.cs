@@ -53,7 +53,7 @@ namespace Infrastructure.Contexts
                     await _roleManager.CreateAsync(incommingRole);
                 }
 
-
+                
                 if (roleName == RoleConstants.Basic)
                 {
                     // Assign Basic permissions   
