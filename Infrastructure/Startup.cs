@@ -1,7 +1,9 @@
 ﻿using Finbuckle.MultiTenant;
 using Infrastructure.Contexts;
+using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +26,8 @@ namespace Infrastructure
                 .AddDbContext<ApplicationDbContext>(options => options
                     .UseSqlServer(config.GetConnectionString("DefaultConnection")))
                 .AddTransient<ITenantDbSeeder, TenantDbSeeder>()
-                .AddTransient<ApplicationDbSeeder>();
+                .AddTransient<ApplicationDbSeeder>()
+                .AddIdentityService();
         }
 
         public static async Task AddDatabaseInitializeAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
@@ -33,6 +36,22 @@ namespace Infrastructure
 
             await scope.ServiceProvider.GetRequiredService<ITenantDbSeeder>()
                 .InitializeDatabaseAsync(ct);
+        }
+
+        internal static IServiceCollection AddIdentityService(this IServiceCollection services)
+        {
+            return services
+                .AddIdentity<ApplicationUser, ApplicationRole>(options =>
+                {
+                    options.Password.RequiredLength = 8;
+                    options.Password.RequireDigit = false;
+                    options.Password.RequireLowercase = false;
+                    options.Password.RequireUppercase = false;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.User.RequireUniqueEmail = true;
+                }).AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders()
+                .Services;
         }
 
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
