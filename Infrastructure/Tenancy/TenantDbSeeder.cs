@@ -19,14 +19,14 @@ namespace Infrastructure.Tenancy
 
         public async Task InitializeDatabaseAsync(CancellationToken ct)
         {
-            // Seed Tenant data
             await InitializeDatabaseWithTenantAsync(ct);
 
             foreach (var tenant in await _tenantDbContext.TenantInfo.ToListAsync(ct))
-            {
-                // Application Db Seeder 
+            { 
+                await InitializeApplicationForTenantAsync(tenant, ct);
             }
         }
+
         private async Task InitializeDatabaseWithTenantAsync(CancellationToken ct)
         {
             if (await _tenantDbContext.TenantInfo.FindAsync([TenancyConstants.Root.Id], ct) is null)

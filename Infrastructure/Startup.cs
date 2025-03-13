@@ -22,7 +22,17 @@ namespace Infrastructure
                     .WithEFCoreStore<TenantDbContext, ABCSchoolTenantInfo>()
                     .Services
                 .AddDbContext<ApplicationDbContext>(options => options
-                    .UseSqlServer(config.GetConnectionString("DefaultConnection")));
+                    .UseSqlServer(config.GetConnectionString("DefaultConnection")))
+                .AddTransient<ITenantDbSeeder, TenantDbSeeder>()
+                .AddTransient<ApplicationDbSeeder>();
+        }
+
+        public static async Task AddDatabaseInitializeAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+        {
+            using var scope = serviceProvider.CreateScope();
+
+            await scope.ServiceProvider.GetRequiredService<ITenantDbSeeder>()
+                .InitializeDatabaseAsync(ct);
         }
 
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
@@ -32,3 +42,5 @@ namespace Infrastructure
         }
     }
 }
+
+  
