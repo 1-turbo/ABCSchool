@@ -31,10 +31,8 @@ namespace Infrastructure.Contexts
 
                 if(await _applicationDbContext.Database.CanConnectAsync(cancellationToken))
                 {
-                    // Seeding
-                    // Default Roles > Assign permissions/claims
                     await InitializeDefaultRolesAsync(cancellationToken);
-                    // Users > Assign Roles 
+                    await InitializeAdminUserAsync();
                 }
             }
         }
@@ -109,12 +107,12 @@ namespace Infrastructure.Contexts
                 {
                     FirstName = TenancyConstants.FirstName,
                     LastName = TenancyConstants.LastName,
-                    Email = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
-                    UserName = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
+                    Email = _tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
+                    UserName = _tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email,
                     EmailConfirmed = true,
                     PhoneNumberConfirmed = true,
-                    NormalizedEmail = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
-                    NormalizedUserName = tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
+                    NormalizedEmail = _tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
+                    NormalizedUserName = _tenantInfoContextAccessor.MultiTenantContext.TenantInfo.Email.ToUpperInvariant(),
                     IsActive = true,
                 };
 
@@ -123,7 +121,10 @@ namespace Infrastructure.Contexts
                 incomingUser.PasswordHash = passwordHash.HashPassword(incomingUser, TenancyConstants.DefaultPassword);
                 await _userManager.CreateAsync(incomingUser);
             }
-
+            if (!await _userManager.IsInRoleAsync(incomingUser, RoleConstants.Admin))
+            {
+                await _userManager.AddToRoleAsync(incomingUser, RoleConstants.Admin);
+            }
         }
     }
 }
