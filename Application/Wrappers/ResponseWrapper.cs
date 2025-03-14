@@ -47,6 +47,36 @@
         {
             return Task.FromResult(Fail(messages));
         }
+
         // Flag - Success
+        public static IResponseWrapper Success()
+        {
+            return new ResponseWrapper { IsSuccessful = true };
+        }
+
+        public static IResponseWrapper Success(string message)
+        {
+            return new ResponseWrapper { IsSuccessful = true, Messages = [message] };
+        }
+
+        public static IResponseWrapper Success(List<string> messages)
+        {
+            return new ResponseWrapper { IsSuccessful = true, Messages = messages };
+        }
+
+        public static Task<IResponseWrapper> SuccessAsync()
+        {
+            return Task.FromResult(Success());
+        }
+
+        public static Task<IResponseWrapper> SuccessAsync(string message)
+        {
+            return Task.FromResult(Success(message));
+        }
+
+        public static Task<IResponseWrapper> SuccessAsync(List<string> messages)
+        {
+            return Task.FromResult(Success(messages));
+        }
     }
 }
