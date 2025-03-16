@@ -1,7 +1,9 @@
-﻿using Finbuckle.MultiTenant;
+﻿    using Finbuckle.MultiTenant;
 using Infrastructure.Contexts;
+using Infrastructure.Identity.Auth;
 using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -54,6 +56,12 @@ namespace Infrastructure
                 .Services;
         }
 
+        internal static IServiceCollection AddPermissions(this IServiceCollection services)
+        {
+            return services
+                .AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>()
+                .AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        }
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
         {
             return app
