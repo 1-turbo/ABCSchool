@@ -29,7 +29,8 @@ namespace Infrastructure
                     .UseSqlServer(config.GetConnectionString("DefaultConnection")))
                 .AddTransient<ITenantDbSeeder, TenantDbSeeder>()
                 .AddTransient<ApplicationDbSeeder>()
-                .AddIdentityService();
+                .AddIdentityService()
+                .AddPermissions();
         }
 
         public static async Task AddDatabaseInitializeAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
