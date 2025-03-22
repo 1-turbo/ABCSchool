@@ -4,6 +4,11 @@ using Finbuckle.MultiTenant.Abstractions;
 using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Infrastructure.Identity.Tokens
 {
@@ -22,7 +27,7 @@ namespace Infrastructure.Identity.Tokens
 
         public async Task<TokenResponse> LoginAsync(TokenRequest request)
         {
-            // Validation
+            #region Validation
             if (! _tenantContextAccessor.MultiTenantContext.TenantInfo.IsActive)
             {
                 throw new UnauthorizedException(["Tenant Subscription is not active. Contact Administrator."]);
@@ -40,12 +45,50 @@ namespace Infrastructure.Identity.Tokens
                 throw new UnauthorizedException(["User Not Active. Contact Administrator."]);
             }
 
-           
+            if (_tenantContextAccessor.MultiTenantContext.TenantInfo.Id is not TenancyConstants.Root.Id) 
+            {
+                if (_tenantContextAccessor.MultiTenantContext.TenantInfo.ValidUpTo < DateTime.UtcNow)
+                {
+                    throw new UnauthorizedException(["Tenant Subscription has expired. Contact Administrator."]); 
+                }
+            }
+            #endregion
+
+            // Generate Jwt
         }
 
         public Task<TokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
             throw new NotImplementedException();
+        }
+
+        private async Task<TokenResponse> GenerateTokenAndUpdateUserAsync(ApplicationUser user)
+        {
+            // Generate Jwt
+
+        }
+
+        private string GenerateToken(ApplicationUser user)
+        {
+            // Encrypted Token
+            return GenerateEncryptedToken() 
+        }
+
+        private string GenerateEncryptedToken(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
+        {
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(60),
+                signingCredentials: signingCredentials);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            return tokenHandler.WriteToken(token);
+        }
+
+        private SigningCredentials GenerateSigningCredentials()
+        {
+            byte[] secret = Encoding.UTF8.GetBytes("DJSHFJMNFSDJBJVNJ48647SBDVNSBHBJ");
+            return new SigningCredentials(new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256);
         }
     }
 }
