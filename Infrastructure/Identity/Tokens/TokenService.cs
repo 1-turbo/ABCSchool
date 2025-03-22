@@ -1,13 +1,14 @@
 ﻿using Application.Exceptions;
 using Application.Features.Identity.Tokens;
 using Finbuckle.MultiTenant.Abstractions;
+using Infrastructure.Constants;
 using Infrastructure.Identity.Models;
 using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.VisualBasic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Infrastructure.Identity.Tokens
@@ -65,13 +66,26 @@ namespace Infrastructure.Identity.Tokens
         private async Task<TokenResponse> GenerateTokenAndUpdateUserAsync(ApplicationUser user)
         {
             // Generate Jwt
+            var newJwt = GenerateToken(user);
 
+            // Refresh Token
+            user.RefreshToken = GenerateRefreshToken();
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(1);
+
+            await _userManager.UpdateAsync(user);
+
+            return new TokenResponse
+            {
+                Jwt = newJwt,
+                RefreshToken = user.RefreshToken,
+                RefreshTokenExpiryDate = user.RefreshTokenExpiryTime
+            };
         }
 
         private string GenerateToken(ApplicationUser user)
         {
             // Encrypted Token
-            return GenerateEncryptedToken() 
+            return GenerateEncryptedToken(GenerateSigningCredentials(), GetUserClaims(user)); 
         }
 
         private string GenerateEncryptedToken(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
@@ -89,6 +103,28 @@ namespace Infrastructure.Identity.Tokens
         {
             byte[] secret = Encoding.UTF8.GetBytes("DJSHFJMNFSDJBJVNJ48647SBDVNSBHBJ");
             return new SigningCredentials(new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256);
+        }
+
+        private IEnumerable<Claim> GetUserClaims(ApplicationUser user)
+        {
+            return
+            [
+                new(ClaimTypes.NameIdentifier, user.Id),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.Name, user.FirstName),
+                new(ClaimTypes.Surname, user.LastName),
+                new(ClaimConstants.Tenant, _tenantContextAccessor.MultiTenantContext.TenantInfo.Id),
+                new(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty)
+            ];
+        }
+
+        private string GenerateRefreshToken()
+        {
+            byte[] randomNumber = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+
+            return Convert.ToBase64String(randomNumber);
         }
     }
 }
