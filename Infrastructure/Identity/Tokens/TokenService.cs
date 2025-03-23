@@ -16,14 +16,17 @@ namespace Infrastructure.Identity.Tokens
     public class TokenService : ITokenService
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly IMultiTenantContextAccessor<ABCSchoolTenantInfo> _tenantContextAccessor;
 
         public TokenService(
-            UserManager<ApplicationUser> userManager, 
-            IMultiTenantContextAccessor<ABCSchoolTenantInfo> tenantContextAccessor)
+            UserManager<ApplicationUser> userManager,
+            IMultiTenantContextAccessor<ABCSchoolTenantInfo> tenantContextAccessor,
+            RoleManager<ApplicationRole> roleManager)
         {
             _userManager = userManager;
             _tenantContextAccessor = tenantContextAccessor;
+            _roleManager = roleManager;
         }
 
         public async Task<TokenResponse> LoginAsync(TokenRequest request)
@@ -56,6 +59,7 @@ namespace Infrastructure.Identity.Tokens
             #endregion
 
             // Generate Jwt
+            return await GenerateTokenAndUpdateUserAsync(userInDb); 
         }
 
         public Task<TokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
@@ -66,7 +70,7 @@ namespace Infrastructure.Identity.Tokens
         private async Task<TokenResponse> GenerateTokenAndUpdateUserAsync(ApplicationUser user)
         {
             // Generate Jwt
-            var newJwt = GenerateToken(user);
+            var newJwt = await GenerateToken(user);
 
             // Refresh Token
             user.RefreshToken = GenerateRefreshToken();
@@ -82,10 +86,10 @@ namespace Infrastructure.Identity.Tokens
             };
         }
 
-        private string GenerateToken(ApplicationUser user)
+        private async Task<string> GenerateToken(ApplicationUser user)
         {
             // Encrypted Token
-            return GenerateEncryptedToken(GenerateSigningCredentials(), GetUserClaims(user)); 
+            return GenerateEncryptedToken(GenerateSigningCredentials(), await GetUserClaims(user)); 
         }
 
         private string GenerateEncryptedToken(SigningCredentials signingCredentials, IEnumerable<Claim> claims)
@@ -105,17 +109,37 @@ namespace Infrastructure.Identity.Tokens
             return new SigningCredentials(new SymmetricSecurityKey(secret), SecurityAlgorithms.HmacSha256);
         }
 
-        private IEnumerable<Claim> GetUserClaims(ApplicationUser user)
+        private async Task<IEnumerable<Claim>> GetUserClaims(ApplicationUser user)
         {
-            return
-            [
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var roleClaims = new List<Claim>();
+            var permissionClaims = new List<Claim>();
+
+            foreach (var userRole in userRoles)
+            {
+                roleClaims.Add(new Claim(ClaimTypes.Role, userRole));
+                var currentRole = await _roleManager.FindByNameAsync(userRole);
+
+                var allPermissionsForCurrentRole = await _roleManager.GetClaimsAsync(currentRole);
+
+                permissionClaims.AddRange(allPermissionsForCurrentRole);
+            }
+            var claims = new List<Claim>
+            {
                 new(ClaimTypes.NameIdentifier, user.Id),
                 new(ClaimTypes.Email, user.Email),
                 new(ClaimTypes.Name, user.FirstName),
                 new(ClaimTypes.Surname, user.LastName),
                 new(ClaimConstants.Tenant, _tenantContextAccessor.MultiTenantContext.TenantInfo.Id),
                 new(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty)
-            ];
+            }
+            .Union(roleClaims)
+            .Union(userClaims)
+            .Union(permissionClaims);
+
+            return claims;
         }
 
         private string GenerateRefreshToken()
