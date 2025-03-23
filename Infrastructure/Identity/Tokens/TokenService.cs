@@ -7,6 +7,7 @@ using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -62,9 +63,44 @@ namespace Infrastructure.Identity.Tokens
             return await GenerateTokenAndUpdateUserAsync(userInDb); 
         }
 
-        public Task<TokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<TokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            throw new NotImplementedException();
+            var userPrincipal = GetClaimPrincipleFromExpiringToken(request.CurrentJwt);
+            var userEmail = userPrincipal.GetEmail();
+
+            var userInDb = await _userManager.FindByEmailAsync(userEmail)
+                ?? throw new UnauthorizedException(["Authentication failed."]);
+
+            if (userInDb.RefreshToken != request.CurrentRefreshToken || userInDb.RefreshTokenExpiryTime < DateTime.UtcNow)
+            {
+                throw new UnauthorizedException(["Invalid token."]);
+            }
+
+            return await GenerateTokenAndUpdateUserAsync(userInDb);
+        }
+
+        private ClaimsPrincipal GetClaimPrincipleFromExpiringToken(string expiringToken)
+        {
+            var tkValidationParams = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero,
+                RoleClaimType = ClaimTypes.Role,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("DJSHFJMNFSDJBJVNJ48647SBDVNSBHBJ"))
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var pricipal = tokenHandler.ValidateToken(expiringToken, tkValidationParams, out var securityToken);
+
+            if (securityToken is not JwtSecurityToken jwtSecurityToken
+                || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new UnauthorizedException(["Invalid token provided. Failed to generate new token."]);
+            }
+            return pricipal;
         }
 
         private async Task<TokenResponse> GenerateTokenAndUpdateUserAsync(ApplicationUser user)
