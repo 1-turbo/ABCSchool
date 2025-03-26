@@ -3,6 +3,7 @@ using Application.Features.Identity.Tokens;
 using Application.Wrappers;
 using Azure;
 using Finbuckle.MultiTenant;
+using Infrastructure.Constants;
 using Infrastructure.Contexts;
 using Infrastructure.Identity.Auth;
 using Infrastructure.Identity.Models;
@@ -21,6 +22,7 @@ using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 
@@ -108,7 +110,7 @@ namespace Infrastructure
                         ClockSkew = TimeSpan.Zero,
                         RoleClaimType = ClaimTypes.Role,
                         ValidateLifetime = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSettings.Secret))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
                     };
 
                     bearer.Events = new JwtBearerEvents
@@ -129,10 +131,45 @@ namespace Infrastructure
                                 var result = JsonConvert.SerializeObject(ResponseWrapper.Fail("An unhandled error has occured."));
                                 return context.Response.WriteAsync(result);
                             }
+                        },
+                        OnChallenge = context =>
+                        {
+                            context.HandleResponse();
+                            if (!context.Response.HasStarted)
+                            {
+                                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                                context.Response.ContentType = "application/json";
+                                var result = JsonConvert.SerializeObject(ResponseWrapper.Fail("You are not authorized."));
+                                return context.Response.WriteAsync(result);
+                            }
+
+                            return Task.CompletedTask;
+                        },
+                        OnForbidden = context =>
+                        {
+                            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                            context.Response.ContentType = "application/json";
+                            var result = JsonConvert.SerializeObject(ResponseWrapper.Fail("You are not authorized to access this resource."));
+                            return context.Response.WriteAsync(result);
                         }
                     };
                 });
-        }
+
+            services.AddAuthorization(options =>
+            {
+                foreach (var prop in typeof(SchoolPermission).GetNestedTypes()
+                    .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)))
+                {
+                    var propertyValue = prop.GetValue(null);
+                    if (propertyValue is not null)
+                    {
+                        options.AddPolicy(propertyValue.ToString(), policy => policy
+                                .RequireClaim(ClaimConstants.Permission, propertyValue.ToString()));
+                    }
+                }
+            });
+            return services;
+        }  
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
         {
             return app
