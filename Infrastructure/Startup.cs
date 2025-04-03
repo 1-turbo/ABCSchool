@@ -1,13 +1,13 @@
 ﻿using Application;
 using Application.Features.Identity.Tokens;
 using Application.Wrappers;
-using Azure;
 using Finbuckle.MultiTenant;
 using Infrastructure.Constants;
 using Infrastructure.Contexts;
 using Infrastructure.Identity.Auth;
 using Infrastructure.Identity.Models;
 using Infrastructure.Identity.Tokens;
+using Infrastructure.OpenApi;
 using Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -15,12 +15,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using NSwag;
+using NSwag.Generation.AspNetCore;
+using NSwag.Generation.Processors.Security;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -45,7 +46,8 @@ namespace Infrastructure
                 .AddTransient<ITenantDbSeeder, TenantDbSeeder>()
                 .AddTransient<ApplicationDbSeeder>()
                 .AddIdentityService()
-                .AddPermissions();
+                .AddPermissions()
+                .AddOpenApiDocumentation(config);
         }
 
         public static async Task AddDatabaseInitializeAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
@@ -170,10 +172,66 @@ namespace Infrastructure
             });
             return services;
         }  
+
+        internal static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services, IConfiguration config)
+        {
+            var swaggerSettings = config.GetSection(nameof(SwaggerSettings)).Get<SwaggerSettings>();
+
+            services.AddEndpointsApiExplorer();
+            _ = services.AddOpenApiDocument((document, serviceProvider) =>
+            {
+                document.PostProcess = doc =>
+                {
+                    doc.Info.Title = swaggerSettings.Title;
+                    doc.Info.Description = swaggerSettings.Description;
+                    doc.Info.Contact = new OpenApiContact
+                    {
+                        Name = swaggerSettings.ContactName,
+                        Email = swaggerSettings.ContactEmail,
+                        Url = swaggerSettings.ContactUrl
+                    };
+                    doc.Info.License = new OpenApiLicense
+                    {
+                        Name = swaggerSettings.LicenseName,
+                        Url = swaggerSettings.LicenseUrl
+                    };
+                };
+
+                document.AddSecurity(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Description = "Enter your Bearer token to attach it as a header on your requests.",
+                    In = OpenApiSecurityApiKeyLocation.Header,
+                    Type = OpenApiSecuritySchemeType.Http,
+                    Scheme = JwtBearerDefaults.AuthenticationScheme,
+                    BearerFormat = "JWT"
+                });
+
+                document.OperationProcessors.Add(new SwaggerGlobalAuthProcessor());
+                document.OperationProcessors.Add(new SwaggerHeaderAttributeProcessor());
+                document.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor());
+            });
+
+            return services;
+        }
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
         {
             return app
-                .UseMultiTenant();
+                .UseMultiTenant()
+                .UseOpenApiDocumentation();
+        }
+
+        internal static IApplicationBuilder UseOpenApiDocumentation(this IApplicationBuilder app)
+        {
+            app.UseOpenApi();
+            app.UseSwaggerUi(options =>
+            {
+                options.DefaultModelExpandDepth = -1;
+                options.DocExpansion = "none";
+                options.TagsSorter = "alpha";
+            });
+
+            return app;
         }
     }
 }
