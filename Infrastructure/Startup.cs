@@ -217,7 +217,9 @@ namespace Infrastructure
         public static IApplicationBuilder UseInfrastructure(this IApplicationBuilder app)
         {
             return app
+                .UseAuthentication()
                 .UseMultiTenant()
+                .UseAuthorization()
                 .UseOpenApiDocumentation();
         }
 
