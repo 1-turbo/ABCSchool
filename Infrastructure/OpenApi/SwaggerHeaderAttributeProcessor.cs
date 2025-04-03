@@ -3,6 +3,8 @@ using NSwag;
 using NSwag.Generation.Processors;
 using NSwag.Generation.Processors.Contexts;
 using System.Reflection;
+using NJsonSchema;
+using JsonSchema = NJsonSchema.JsonSchema;
 
 namespace Infrastructure.OpenApi
 {
@@ -28,6 +30,11 @@ namespace Infrastructure.OpenApi
                     Kind = OpenApiParameterKind.Header,
                     Description = swaggerHearder.Description,
                     IsRequired = true,
+                    Schema = new JsonSchema
+                    {
+                        Type = JsonObjectType.String, 
+                        Default = swaggerHearder.DefaultValue,
+                    }
                 });
             }
             return true;

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Namotion.Reflection;
+using NSwag;
 using NSwag.Generation.AspNetCore;
 using NSwag.Generation.Processors;
 using NSwag.Generation.Processors.Contexts;
@@ -14,12 +15,21 @@ namespace Infrastructure.OpenApi
         public SwaggerGlobalAuthProcessor()
             : this(JwtBearerDefaults.AuthenticationScheme)
         {
-            
+
         }
         public bool Process(OperationProcessorContext context)
         {
-            IList<object> list = ((AspNetCoreOperationProcessorContext)context)
-                .ApiDescription.ActionDescriptor.TryGetPropertyValue<IList<object>>("EndpointMetadata");
+            // Null check for context and its properties
+            if (context == null ||
+                context.OperationDescription?.Operation == null ||
+                !(context is AspNetCoreOperationProcessorContext aspNetContext))
+            {
+                return true;
+            }
+
+            var list = aspNetContext
+                .ApiDescription?.ActionDescriptor?
+                .TryGetPropertyValue<IList<object>>("EndpointMetadata");
 
             if (list is not null)
             {
@@ -28,16 +38,18 @@ namespace Infrastructure.OpenApi
                     return true;
                 }
 
-                if (context.OperationDescription.Operation.Security.Count == 0)
+                // Safely handle security requirements
+                if (context.OperationDescription.Operation.Security == null ||
+                    context.OperationDescription.Operation.Security.Count == 0)
                 {
-                    (context.OperationDescription.Operation.Security ??= [])
-                        .Add(new NSwag.OpenApiSecurityRequirement
+                    context.OperationDescription.Operation.Security ??= new List<OpenApiSecurityRequirement>();
+                    context.OperationDescription.Operation.Security.Add(new OpenApiSecurityRequirement
+                    {
                         {
-                            {
-                                _schema,
-                                Array.Empty<string>()
-                            }
-                        });
+                            _schema,
+                            Array.Empty<string>()
+                        }
+                    });
                 }
             }
             return true;
@@ -46,9 +58,9 @@ namespace Infrastructure.OpenApi
 
     public static class ObjectExtensions
     {
-        public static T TryGetPropertyValu<T>(this object obj, string propertyName, T defaultValue = default) =>
-            obj.GetType().GetRuntimeProperty(propertyName) is PropertyInfo propertyInfo
-            ? (T)propertyInfo.GetValue(obj)
-            : defaultValue;
+        public static T TryGetPropertyValue<T>(this object obj, string propertyName, T defaultValue = default) =>
+            obj?.GetType().GetRuntimeProperty(propertyName) is PropertyInfo propertyInfo
+                ? (T)propertyInfo.GetValue(obj)
+                : defaultValue;
     }
 }

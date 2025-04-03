@@ -5,9 +5,11 @@ namespace Infrastructure.OpenApi
     public class TenantHeaderAttribute()
         : SwaggerHearderAttribute(
             headerName: TenancyConstants.TenantIdName,
-            description: "Enter Your tenant name to access This Api.",
+            description: "Enter your tenant name to access this API.",
             defaultName: string.Empty,
-            isRequired: true)
+            isRequired: true,
+            defaultValue: string.Empty)
     {
     }
 }
+
