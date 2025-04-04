@@ -24,17 +24,36 @@ namespace WebApi
                 var response = context.Response;
                 response.ContentType = "application/json";
 
-                var responseWrapper = ResponseWrapper.Fail(message: ex.Message);
+                var responseWrapper = ResponseWrapper.Fail();
 
-                response.StatusCode = ex switch
+                switch (ex)
                 {
-                    ConflictException ce => (int)ce.StatusCode,
-                    NotFoundException nfe => (int)nfe.StatusCode,
-                    ForbiddenException fe => (int)fe.StatusCode,
-                    IdentityException ie => (int)ie.StatusCode,
-                    UnauthorizedException ue => (int)ue.StatusCode,
-                    _ => (int)HttpStatusCode.InternalServerError,
-                };
+                    case ConflictException ce:
+                        response.StatusCode = (int)ce.StatusCode;
+                        responseWrapper.Messages = ce.ErrorMessages;
+                        break;
+                    case NotFoundException nfe:
+                        response.StatusCode = (int)nfe.StatusCode;
+                        responseWrapper.Messages = nfe.ErrorMessages;
+                        break;
+                    case ForbiddenException fe:
+                        response.StatusCode = (int)fe.StatusCode;
+                        responseWrapper.Messages = fe.ErrorMessages;
+                        break;
+                    case IdentityException ie:
+                        response.StatusCode = (int)ie.StatusCode;
+                        responseWrapper.Messages = ie.ErrorMessages;
+                        break;
+                    case UnauthorizedException ue:
+                        response.StatusCode = (int)ue.StatusCode;
+                        responseWrapper.Messages = ue.ErrorMessages;
+                        break;
+                    default:
+                        response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        responseWrapper.Messages = ["Something went wrong. Contact Administrator."];
+                        break;
+                }
+              
                 var result = JsonSerializer.Serialize(responseWrapper);
 
                 await response.WriteAsync(result);

@@ -35,6 +35,8 @@ namespace WebApi
 
             app.UseInfrastructure();
 
+            app.UseMiddleware<ErrorHandlingMiddleware>();
+
             app.MapControllers();
 
             app.Run();
