@@ -1,4 +1,4 @@
-
+using Application;
 using Infrastructure;
 
 namespace WebApi
@@ -16,6 +16,8 @@ namespace WebApi
             builder.Services.AddInfrastructureServices(builder.Configuration);
 
             builder.Services.AddJwtAuthentication(builder.Services.GetJwtSettings(builder.Configuration));
+
+            builder.Services.AddApplicationServices();
 
             var app = builder.Build();
 
