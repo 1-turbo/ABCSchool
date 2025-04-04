@@ -12,7 +12,7 @@ namespace WebApi.Controllers
     [Route("api/[controller]")]
     public class TokenController : BaseApiController
     {
-        [HttpPost("logon")]
+        [HttpPost("login")]
         [AllowAnonymous]
         [TenantHeader]
         [OpenApiOperation("Used to obtain jwt for login.")]
